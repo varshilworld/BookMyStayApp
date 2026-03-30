@@ -1,6 +1,13 @@
 import java.util.*;
 
-// Represents a confirmed reservation
+// Custom exception for invalid booking scenarios
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
+    }
+}
+
+// Represents a reservation
 class Reservation {
     private String reservationId;
     private String guestName;
@@ -10,18 +17,6 @@ class Reservation {
         this.reservationId = reservationId;
         this.guestName = guestName;
         this.roomType = roomType;
-    }
-
-    public String getReservationId() {
-        return reservationId;
-    }
-
-    public String getGuestName() {
-        return guestName;
-    }
-
-    public String getRoomType() {
-        return roomType;
     }
 
     @Override
@@ -34,33 +29,23 @@ class Reservation {
     }
 }
 
-// Stores booking history in insertion order
-class BookingHistory {
-    private List<Reservation> history = new ArrayList<>();
+// Validator class
+class BookingValidator {
+    private static final Set<String> VALID_ROOM_TYPES =
+            new HashSet<>(Arrays.asList("Deluxe", "Suite", "Standard"));
 
-    public void addReservation(Reservation reservation) {
-        history.add(reservation);
-    }
+    public static void validate(String reservationId, String guestName, String roomType)
+            throws InvalidBookingException {
 
-    public List<Reservation> getHistory() {
-        return Collections.unmodifiableList(history);
-    }
-}
-
-// Generates reports from booking history
-class BookingReportService {
-    private BookingHistory bookingHistory;
-
-    public BookingReportService(BookingHistory bookingHistory) {
-        this.bookingHistory = bookingHistory;
-    }
-
-    public void generateSummaryReport() {
-        List<Reservation> reservations = bookingHistory.getHistory();
-        System.out.println("\n=== Booking Summary Report ===");
-        System.out.println("Total bookings: " + reservations.size());
-        for (Reservation r : reservations) {
-            System.out.println(r);
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            throw new InvalidBookingException("Reservation ID cannot be empty.");
+        }
+        if (guestName == null || guestName.trim().isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty.");
+        }
+        if (!VALID_ROOM_TYPES.contains(roomType)) {
+            throw new InvalidBookingException("Invalid room type: " + roomType +
+                    ". Valid options are: " + VALID_ROOM_TYPES);
         }
     }
 }
@@ -69,7 +54,7 @@ class BookingReportService {
 public class Username {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        BookingHistory history = new BookingHistory();
+        List<Reservation> confirmedBookings = new ArrayList<>();
 
         System.out.print("Enter number of bookings to confirm: ");
         int n = scanner.nextInt();
@@ -83,16 +68,27 @@ public class Username {
             System.out.print("Guest Name: ");
             String guest = scanner.nextLine();
 
-            System.out.print("Room Type: ");
+            System.out.print("Room Type (Deluxe / Suite / Standard): ");
             String room = scanner.nextLine();
 
-            Reservation reservation = new Reservation(id, guest, room);
-            history.addReservation(reservation);
+            try {
+                // Validate input before creating reservation
+                BookingValidator.validate(id, guest, room);
+
+                Reservation reservation = new Reservation(id, guest, room);
+                confirmedBookings.add(reservation);
+                System.out.println("Booking confirmed: " + reservation);
+
+            } catch (InvalidBookingException e) {
+                System.out.println("Booking failed: " + e.getMessage());
+            }
         }
 
-        // Admin requests report
-        BookingReportService reportService = new BookingReportService(history);
-        reportService.generateSummaryReport();
+        // Display all confirmed bookings
+        System.out.println("\n=== Confirmed Bookings ===");
+        for (Reservation r : confirmedBookings) {
+            System.out.println(r);
+        }
 
         scanner.close();
     }
